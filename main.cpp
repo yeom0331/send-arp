@@ -75,8 +75,7 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "couldn't open device %s(%s)\n", dev, errbuf);
         return -1;
     }
-
-    u_int8_t mac[Mac::SIZE];
+    
     char *sender_ip = argv[2];
     char *target_ip = argv[3];
     EthArpPacket request_packet;
