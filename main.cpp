@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
     get_mac(dev);
     request_packet.arp_.sip_=htonl(Ip(get_ip(dev)));
 
-    memset(&request_packet.arp_.tmac_, 0x00, Mac::SIZE);
+    memset(request_packet.arp_.tmac_, 0x00, Mac::SIZE);
     request_packet.arp_.tip_=htonl(Ip(sender_ip));
 
 
@@ -116,8 +116,8 @@ int main(int argc, char* argv[]) {
             struct EthArpPacket *etharp = (struct EthArpPacket *)reply_packet;
             if(etharp->eth_.type_!=htons(EthHdr::Arp) && etharp->arp_.op_!=htons(ArpHdr::Reply) && etharp->arp_.sip_!=htonl(Ip(sender_ip))) continue;
 
-            memcpy(&request_packet.eth_.dmac_, &etharp->eth_.smac_, Mac::SIZE);
-            memcpy(&request_packet.arp_.tmac_, &etharp->arp_.smac_, Mac::SIZE);
+            memcpy(request_packet.eth_.dmac_, etharp->eth_.smac_, Mac::SIZE);
+            memcpy(request_packet.arp_.tmac_, etharp->arp_.smac_, Mac::SIZE);
             request_packet.arp_.op_=htons(ArpHdr::Reply);
             request_packet.arp_.sip_=htonl(Ip(target_ip));
 
