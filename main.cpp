@@ -59,7 +59,7 @@ struct EthArpPacket {
 
 void usage() {
     printf("syntax: send-arp-test <interface> sender_ip target_ip\n");
-    printf("sample: send-arp-test wlan0 192.168.135.2 192.168.135.161\n");
+    printf("sample: send-arp-test wlan0 192.168.135.164 192.168.135.2\n");
 }
 
 int main(int argc, char* argv[]) {
