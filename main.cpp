@@ -25,7 +25,7 @@ void get_mac(char *dev)
         memcpy(&my_mac, ifr.ifr_hwaddr.sa_data, Mac::SIZE);
     }
     else {
-        printf("error");
+        printf("interface error");
         exit(0);
     }
 }
@@ -41,7 +41,7 @@ char* get_ip(char *dev)
 
     ifr.ifr_addr.sa_family = AF_INET;
 
-    strncpy(ifr.ifr_name, "ens33", IFNAMSIZ-1);
+    strncpy(ifr.ifr_name, dev, IFNAMSIZ-1);
 
     ioctl(fd, SIOCGIFADDR, &ifr);
 
@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
             }
 
             struct EthArpPacket *etharp = (struct EthArpPacket *)reply_packet;
-            if(etharp->eth_.type_!=htons(EthHdr::Arp) && etharp->arp_.op_!=htons(ArpHdr::Reply) && etharp->arp_.sip_!=htonl(sender_ip)) continue;
+            if(etharp->eth_.type_!=htons(EthHdr::Arp) && etharp->arp_.op_!=htons(ArpHdr::Reply) && etharp->arp_.sip_!=htonl(Ip(sender_ip))) continue;
 
             memcpy(&request_packet.eth_.dmac_, &etharp->eth_.smac_, Mac::SIZE);
             memcpy(&request_packet.arp_.tmac_, &etharp->arp_.smac_, Mac::SIZE);
