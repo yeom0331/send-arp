@@ -34,21 +34,27 @@ char* get_ip(char *dev)
 {
     struct ifreq ifr;
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if(fd == -1) {
-        printf("socketopen error\n");
+    if(fd < -1) {
+        perror("socketopen error\n");
         exit(0);
     }
 
-    ifr.ifr_addr.sa_family = AF_INET;
+    ifr.ifr_addr.sa_family = AF_INET;s
 
     strncpy(ifr.ifr_name, dev, IFNAMSIZ-1);
 
-    ioctl(fd, SIOCGIFADDR, &ifr);
-
+    if(ioctl(fd, SIOCGIFADDR, &ifr)<0)
+    {
+        perror("ioctl error\n");
+        exit(0);
+    }
+    else
+    {
+        return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    }
     close(fd);
-
-    return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
+
 
 #pragma pack(push, 1)
 struct EthArpPacket {
@@ -81,7 +87,7 @@ int main(int argc, char* argv[]) {
     EthArpPacket request_packet;
 
 
-    memset(request_packet.eth_.dmac_, 0xff, Mac::SIZE);
+    memset(&request_packet.eth_.dmac_, 0xff, Mac::SIZE);
     get_mac(dev);
     request_packet.eth_.type_ = htons(EthHdr::Arp);
     request_packet.arp_.hrd_ = htons(ArpHdr::ETHER);
@@ -93,7 +99,7 @@ int main(int argc, char* argv[]) {
     get_mac(dev);
     request_packet.arp_.sip_=htonl(Ip(get_ip(dev)));
 
-    memset(request_packet.arp_.tmac_, 0x00, Mac::SIZE);
+    memset(&request_packet.arp_.tmac_, 0x00, Mac::SIZE);
     request_packet.arp_.tip_=htonl(Ip(sender_ip));
 
 
@@ -115,8 +121,8 @@ int main(int argc, char* argv[]) {
             struct EthArpPacket *etharp = (struct EthArpPacket *)reply_packet;
             if(etharp->eth_.type_!=htons(EthHdr::Arp) && etharp->arp_.op_!=htons(ArpHdr::Reply) && etharp->arp_.sip_!=htonl(Ip(sender_ip))) continue;
 
-            memcpy(request_packet.eth_.dmac_, etharp->eth_.smac_, Mac::SIZE);
-            memcpy(request_packet.arp_.tmac_, etharp->arp_.smac_, Mac::SIZE);
+            memcpy(&request_packet.eth_.dmac_, &etharp->eth_.smac_, Mac::SIZE);
+            memcpy(&request_packet.arp_.tmac_, &etharp->arp_.smac_, Mac::SIZE);
             request_packet.arp_.op_=htons(ArpHdr::Reply);
             request_packet.arp_.sip_=htonl(Ip(target_ip));
 
