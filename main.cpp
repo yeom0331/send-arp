@@ -39,7 +39,7 @@ char* get_ip(char *dev)
         exit(0);
     }
 
-    ifr.ifr_addr.sa_family = AF_INET;s
+    ifr.ifr_addr.sa_family = AF_INET;
 
     strncpy(ifr.ifr_name, dev, IFNAMSIZ-1);
 
