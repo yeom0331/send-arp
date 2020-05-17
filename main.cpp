@@ -10,10 +10,11 @@
 #include <string.h>
 #include <unistd.h>
 
+static uint8_t my_mac[Mac::SIZE];
+
 void get_mac(char *dev)
 {
     struct ifreq ifr;
-    uint8_t my_mac[Mac::SIZE];
     int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
     if(fd == -1) {
         printf("socketopen error\n");
@@ -55,7 +56,6 @@ char* get_ip(char *dev)
     close(fd);
 }
 
-
 #pragma pack(push, 1)
 struct EthArpPacket {
     EthHdr eth_;
@@ -65,7 +65,7 @@ struct EthArpPacket {
 
 void usage() {
     printf("syntax: send-arp-test <interface> sender_ip target_ip\n");
-    printf("sample: send-arp-test wlan0 192.168.135.164 192.168.135.2\n");
+    printf("sample: send-arp-test wlan0 192.168.135.2 192.168.135.161\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -81,14 +81,15 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "couldn't open device %s(%s)\n", dev, errbuf);
         return -1;
     }
-    
+
+
     char *sender_ip = argv[2];
     char *target_ip = argv[3];
     EthArpPacket request_packet;
 
-
-    memset(&request_packet.eth_.dmac_, 0xff, Mac::SIZE);
     get_mac(dev);
+    memset(&request_packet.eth_.dmac_, 0xff, Mac::SIZE);
+    request_packet.eth_.smac_ = my_mac;
     request_packet.eth_.type_ = htons(EthHdr::Arp);
     request_packet.arp_.hrd_ = htons(ArpHdr::ETHER);
     request_packet.arp_.pro_ = htons(EthHdr::Ip4);
@@ -96,7 +97,7 @@ int main(int argc, char* argv[]) {
     request_packet.arp_.pln_ = Ip::SIZE;
     request_packet.arp_.op_ = htons(ArpHdr::Request);
 
-    get_mac(dev);
+    request_packet.arp_.smac_ = my_mac;
     request_packet.arp_.sip_=htonl(Ip(get_ip(dev)));
 
     memset(&request_packet.arp_.tmac_, 0x00, Mac::SIZE);
@@ -120,9 +121,9 @@ int main(int argc, char* argv[]) {
 
             struct EthArpPacket *etharp = (struct EthArpPacket *)reply_packet;
             if(etharp->eth_.type_!=htons(EthHdr::Arp) && etharp->arp_.op_!=htons(ArpHdr::Reply) && etharp->arp_.sip_!=htonl(Ip(sender_ip))) continue;
-
-            memcpy(&request_packet.eth_.dmac_, &etharp->eth_.smac_, Mac::SIZE);
-            memcpy(&request_packet.arp_.tmac_, &etharp->arp_.smac_, Mac::SIZE);
+            printf("resolving OK\n");
+            request_packet.eth_.dmac_ = etharp->eth_.smac_;
+            request_packet.arp_.tmac_ = etharp->arp_.smac_;
             request_packet.arp_.op_=htons(ArpHdr::Reply);
             request_packet.arp_.sip_=htonl(Ip(target_ip));
 
